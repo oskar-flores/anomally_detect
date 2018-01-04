@@ -87,7 +87,8 @@ subprojects {
         compile "com.databricks:spark-csv_2.11:1.5.0"
 
         compile "com.microsoft.azure:azure-data-lake-store-sdk:2.1.5"
-        compile group: 'org.rogach', name: 'scallop_2.10', version: '3.1.1'
+
+        compile "org.vegas-viz:name:vegas-spark_2.11:'0.3.11'"
     }
 
     task replaceConf(type: Copy) {

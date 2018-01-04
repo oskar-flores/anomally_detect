@@ -113,7 +113,7 @@ object Main {
       .schema(DataSchema)
       .csv(DataPath)
 
-    val dataDF = rawDataDF.sample(false, Fraction, 42)
+    val dataDF = rawDataDF.sample(withReplacement = false, Fraction, 42)
     println("Size of dataset=" + dataDF.count + " (total=" + rawDataDF.count + ")")
     val detector = new KmeansAnomalyDetector(spark, dataDF)
 
@@ -123,9 +123,6 @@ object Main {
     // K-means
     // K-means simple is also doing anomaly detections.
     (20 to 100 by 10).map(k => (k, detector.kmeansOneHotEncoderWithNormalization(k)))
-
-    // Bisecting K-means
-    (20 to 100 by 10).map(k => (k, detector.bisectingKmeansOneHotEncoderWithNormalization(k)))
 
   }
 }

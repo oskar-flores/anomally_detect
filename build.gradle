@@ -1,0 +1,131 @@
+import com.sun.org.apache.xalan.internal.xsltc.compiler.Copy
+
+plugins {
+    id 'com.github.johnrengelman.shadow' version '2.0.0'
+    id 'project-report'
+}
+
+allprojects {
+    apply plugin: 'scala'
+    apply plugin: 'com.github.johnrengelman.shadow'
+
+    version 'latest'
+
+    repositories {
+        jcenter()
+        mavenLocal()
+        mavenCentral()
+        maven {
+            url "https://oss.sonatype.org/content/repositories/snapshots"
+        }
+        maven {
+            url 'https://repository.apache.org/content/repositories/snapshots/'
+        }
+        maven {
+            url 'http://conjars.org/repo/'
+        }
+
+        maven {
+            url 'https://repository.cloudera.com/artifactory/cloudera-repos/'
+        }
+        maven {
+            url 'http://clojars.org/repo/'
+        }
+    }
+}
+
+
+subprojects {
+
+    sourceCompatibility = 1.7
+    targetCompatibility = 1.8
+
+    configurations {
+        provided
+
+        all {
+            resolutionStrategy {
+                force 'com.fasterxml.jackson.core:jackson-databind:' + jacksonVersion
+                force 'com.fasterxml.jackson.core:jackson-databind:' + jacksonVersion
+                force 'org.apache.spark:spark-core_2.11:' + sparkVersion
+                force 'org.apache.spark:spark-sql_2.11:' + sparkVersion
+                cacheDynamicVersionsFor 0, 'seconds'
+                cacheChangingModulesFor 0, 'seconds'
+            }
+        }
+    }
+
+    dependencies {
+        def withoutJavaServlet = {
+            exclude group: 'javax.servlet'
+        }
+
+        def withoutJetty = {
+            exclude group: 'org.mortbay.jetty'
+        }
+
+        compile "org.scala-lang:scala-library:" + scalaVersion
+        compile "org.scala-lang:scala-reflect:" + scalaVersion
+        compile "org.scala-lang:scala-compiler:" + scalaVersion
+
+        compile "org.apache.spark:spark-core_2.11:" + sparkVersion
+        compile "org.apache.spark:spark-sql_2.11:" + sparkVersion
+        compile "org.apache.spark:spark-mllib_2.11:" + sparkVersion
+        compile "org.apache.spark:spark-hive_2.11:" + sparkVersion
+
+        compile "org.apache.hadoop:hadoop-azure-datalake:2.8.1"
+        compile "org.apache.hadoop:hadoop-common:" + hadoopVersion, withoutJavaServlet
+        compile "org.apache.hadoop:hadoop-client:" + hadoopVersion, withoutJavaServlet
+
+        compile "com.fasterxml.jackson.core:jackson-databind:" + jacksonVersion, withoutJavaServlet
+        compile "com.fasterxml.jackson.module:jackson-module-scala_2.11:" + jacksonVersion, withoutJavaServlet
+
+        compile 'com.google.code.gson:gson:2.7'
+        compile 'org.apache.hadoop:hadoop-mapreduce-client-core:2.7.2'
+
+        compile 'com.typesafe:config:1.3.1'
+        compile "com.databricks:spark-csv_2.11:1.5.0"
+
+        compile "com.microsoft.azure:azure-data-lake-store-sdk:2.1.5"
+        compile group: 'org.rogach', name: 'scallop_2.10', version: '3.1.1'
+    }
+
+    task replaceConf(type: Copy) {
+        group = 'templating'
+        description = 'Generates project properties from template'
+        from 'src/main/resources/template'
+        into 'src/main/resources/'
+        if (project.hasProperty('jenkins')) {
+            expand(teamcity)
+        } else {
+            expand(project.properties)
+        }
+        outputs.upToDateWhen { false }
+    }
+
+    jar {
+        classifier = 'all'
+        manifest {
+            attributes 'Implementation-Title': title,
+                    'Implementation-Version': version,
+                    'Main-Class': mainClassFile
+        }
+        include { sourceSets.main.output.classesDir }
+    }
+
+    shadowJar {
+        classifier = 'shadow'
+        append app_name + '.conf'
+        zip64 true
+        exclude "META-INF/*.SF"
+        exclude 'META-INF/*.DSA'
+        exclude 'META-INF/*.RSA'
+        exclude "LICENSE*"
+        archiveName = app_name + "-" + version + "-shadow.jar"
+    }
+}
+
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.1'
+}
